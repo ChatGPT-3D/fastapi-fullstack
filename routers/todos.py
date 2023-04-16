@@ -73,7 +73,7 @@ async def add_new_todo(request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/gpt_proxy")
-async def create_todo(request: Request):
+async def gpt_proxy(request: Request):
     body = await request.body()
     request_data = json.loads(body)
     query = request_data.get("query", "")
