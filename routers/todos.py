@@ -1,5 +1,11 @@
+import json
+import os
 from ast import For
 import sys
+
+import jsonify as jsonify
+import requests as requests
+
 sys.path.append("..")
 from starlette import status
 from starlette.responses import RedirectResponse
@@ -13,6 +19,9 @@ from .auth import get_current_user
 
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+
 
 router = APIRouter(
     prefix="/todos",
@@ -61,6 +70,40 @@ async def add_new_todo(request: Request, db: Session = Depends(get_db)):
         return RedirectResponse(url="/auth", status_code=status.HTTP_302_FOUND)
 
     return templates.TemplateResponse("add-todo.html", {"request": request, "user": user})
+
+
+@router.post("/gpt_proxy")
+async def create_todo(request: Request):
+    body = await request.body()
+    request_data =json.loads(body)
+    query = request_data.get("query", "")
+
+    url = f"https://api.openai.com/v1/chat/completions"
+    headers = {
+        'Authorization': f'Bearer {OPENAI_API_KEY}',
+        'Content-Type': 'application/json',
+    }
+    payload = {
+        "model": "gpt-3.5-turbo",
+        "messages": [
+            {
+                "role": "system",
+                "content": "You are a helpful assistant."
+            },
+            {
+                "role": "user",
+                "content": query
+            }
+        ],
+    }
+
+    with requests.Session() as session:
+        session.headers.update(headers)
+        result = session.post(url, json=payload, headers=headers)
+        assert result.status_code == 200, f"Got status code {result.status_code} from OpenAI API"
+        return_message = result.json()
+        return jsonify({"query": query"txtresponse": return_message['choices'][0]['message']['content']})
+
 
 @router.post("/add-todo", response_class=HTMLResponse)
 async def create_todo(request: Request, title: str = Form(...), description: str = Form(...), priority: int = Form(...), db: Session = Depends(get_db)):
