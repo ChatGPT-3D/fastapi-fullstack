@@ -75,7 +75,7 @@ async def add_new_todo(request: Request, db: Session = Depends(get_db)):
 @router.post("/gpt_proxy")
 async def create_todo(request: Request):
     body = await request.body()
-    request_data =json.loads(body)
+    request_data = json.loads(body)
     query = request_data.get("query", "")
 
     url = f"https://api.openai.com/v1/chat/completions"
@@ -102,7 +102,7 @@ async def create_todo(request: Request):
         result = session.post(url, json=payload, headers=headers)
         assert result.status_code == 200, f"Got status code {result.status_code} from OpenAI API"
         return_message = result.json()
-        return jsonify({"query": query"txtresponse": return_message['choices'][0]['message']['content']})
+        return jsonify({"query": query, "txtresponse": return_message['choices'][0]['message']['content']})
 
 
 @router.post("/add-todo", response_class=HTMLResponse)
